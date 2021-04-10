@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sickrage
+  namespace: cp
+spec:
+  selector:
+    matchLabels:
+      app: sickrage
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sickrage
+        tier: frontend
+    spec:
+      containers:
+      - name: sickrage
+        image: linuxserver/sickrage:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: TZ
+          value: "Europe/Warsaw"
+        - name: PUID
+          valueFrom:
+            secretKeyRef:
+              name: cpsecret
+              key: puid
+        - name: PGID
+          valueFrom:
+            secretKeyRef:
+              name: cpsecret
+              key: pgid
+        volumeMounts:
+        - mountPath: /config
+          name: sickrage-storage
+        volumeMounts:
+        - mountPath: /downloads
+          name: sickrage-storage
+        volumeMounts:
+        - mountPath: /tv
+          name: sickrage-storage
+      volumes:
+       - name: sickrage-storage
+         hostPath:
+          path: /opt/testnuke/sickrage
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sickrage
+  namespace: cp
+  labels:
+    app: sickrage
+    tier: frontend
+spec:
+  ports:
+  - port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: sickrage
+    tier: frontend
+  internalTrafficPolicy: Local
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sr-ingress
+  namespace: cp
+spec:
+  rules:
+  - host: "sr.asus"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: sickrage
+            port:
+              number: 8081
+  - host: "sr"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: sickrage
+            port:
+              number: 8081

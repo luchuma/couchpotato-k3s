@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couchpotato
+  namespace: cp
+spec:
+  selector:
+    matchLabels:
+      app: couchpotato
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: couchpotato
+        tier: frontend
+    spec:
+      containers:
+      - name: couchpotato
+        image: linuxserver/couchpotato:latest
+        ports:
+        - containerPort: 5050
+        env:
+        - name: TZ
+          value: "Europe/Warsaw"
+        volumeMounts:
+        - mountPath: /config
+          name: couchpotato-storage
+      volumes:
+       - name: couchpotato-storage
+         persistentVolumeClaim:
+           claimName: couchpotatovolume-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchpotato
+  namespace: cp
+  labels:
+    app: couchpotato
+    tier: frontend
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 5050
+    protocol: TCP
+    targetPort: 5050
+  selector:
+    app: couchpotato
+    tier: frontend

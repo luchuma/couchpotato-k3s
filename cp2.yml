@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couchpotato
+  namespace: cp
+spec:
+  selector:
+    matchLabels:
+      app: couchpotato
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: couchpotato
+        tier: frontend
+    spec:
+      containers:
+      - name: couchpotato
+        image: linuxserver/couchpotato:latest
+        ports:
+        - containerPort: 5050
+        env:
+        - name: TZ
+          value: "Europe/Warsaw"
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        volumeMounts:
+        - mountPath: /config
+          name: couchpotato-storage
+      volumes:
+       - name: couchpotato-storage
+         hostPath:
+          path: /opt/testnuke
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchpotato
+  namespace: cp
+  labels:
+    app: couchpotato
+    tier: frontend
+spec:
+  ports:
+  - port: 5050
+    protocol: TCP
+    targetPort: 5050
+  selector:
+    app: couchpotato
+    tier: frontend
+  internalTrafficPolicy: Local
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cp-ingress
+  namespace: cp
+spec:
+  rules:
+  - host: "cp.asus"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: couchpotato
+            port:
+              number: 5050
+  - host: "cp"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: couchpotato
+            port:
+              number: 5050
