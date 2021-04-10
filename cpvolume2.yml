@@ -1,0 +1,24 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: couchpotato-storage
+  uid: rancher
+provisioner: rancher.io/local-path
+volumeBindingMode: Immediate
+reclaimPolicy: Delete
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: couchpotatovolume-pvc
+  namespace: cp
+spec:
+  storageClassName: couchpotato-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi
+  hostPath:
+    path: /opt/testnuke
+    type: DirectoryOrCreate
